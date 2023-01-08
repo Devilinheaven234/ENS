@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
 import {StringUtils} from "./libraries/StringUtils.sol";
+//We import another help function
+import "@openzeppelin/contracts/utils/Base64.sol";
 
 //We inhert the contract we imported. This means wwe'll have access
 //to the inherit contract's methods.
@@ -58,6 +60,33 @@ contract Domains is ERC721URIStorage {
 
     //check if enough matic for the certain domain name was paid int the transaction 
     require (msg.value >= _price, "Not enough Matic is paid");
+
+    //Combine the name passed into the function with the TLD
+    string memory _name = string(abi.encodePacked(name, ".", tld));
+
+    //Create the SVG (image for the NFT with the name 
+    string memory finalSvg = string(abi.encodePacked(svgPartOne, _name, svgPartTwo));
+    uint256 newRecordId = _tokenIds.current();
+    uint256 length = StringUtils.strlen(name);
+    string memory strlen = Strings.toString(length);
+    
+    console.log("Registering %s.%s on the contract with tokenID %d", name, tld, newRecordId);
+
+    //Create the JSON metadata of our NFT. We do the this by combining strings and encoding as base64
+    string memory json = Base64.encode(
+      abi.encodePacked(
+        '{"name": "', 
+        _name,
+        '", "description": "A domain on the Shards name service", "image": "data:image/svg+xml;base64, ',
+        Base64.enode(bytes(finalSvg)),
+        '","length":"',
+        strlen,
+        '"}'
+      )
+    );
+
+    string memory finalTokenUrl = string(abi.encodePacked("data:application/json;base64,", json));
+    
     
     domains[name] = msg.sender;
     console.log ("%s has registered a doamin!",msg.sender);
